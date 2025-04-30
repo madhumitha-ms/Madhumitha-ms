@@ -1,0 +1,118 @@
+---
+title: "Agri Production in India"
+output: html_document
+---
+#Introduction :
+India's agriculture is composed of many crops, with the foremost food staples being rice and wheat.  
+Indian farmers also grow pulses, potatoes, sugarcane, oilseeds, and such non-food items as cotton, tea, coffee, rubber, and jute.  
+Despite the overwhelming size of the agricultural sector, however, yields per hectare of crops in India are generally low compared to international standards.  
+Improper water management is another problem affecting India's agriculture.  
+At a time of increasing water shortages and environmental crises, for example, the rice crop in India is allocated disproportionately high amounts of water.  
+It is estimated that as much as one-fifth of the total agricultural output is lost due to inefficiencies in harvesting, transport, and storage of government-subsidized crops.
+
+So lets us analyse more about the crop cultivation, cost invested, seasons for cultivation.  
+Have used **Lattice** package for Visualization.  
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+suppressMessages(library(lattice))
+suppressMessages(library(dplyr))
+suppressMessages(library("latticeExtra"))
+suppressMessages(library(gridExtra))
+suppressMessages(library(tidyr))
+suppressMessages(library(RColorBrewer))
+```
+  
+Exists 5 source files , which has details about crop varierties, crop production, cost cost etc. Let us analyse the file one by one.  
+```{r}
+setwd("../input/")
+produce<-read.csv("produce.csv")
+crop<-read.csv("datafile.csv")
+crop_var<-read.csv("datafile (3).csv")
+crop_prod<-read.csv("datafile (2).csv")
+crop_cost<-read.csv("datafile (1).csv")
+```
+  
+###1) Crop Variety  
+```{r}
+str(crop_var)
+head(crop_var)
+```
+  
+###2) Crop Cultivation and Yeild Cost  
+Glimpse of data  
+```{r}
+str(crop_cost)
+head(crop_cost)
+``` 
+Total Yeild for crops  .. Which crop Yeilds more in India?   
+
+```{r echo=FALSE}
+
+yeild<-crop_cost %>% select(Crop,Yield..Quintal..Hectare..)%>% group_by(Crop)%>% summarise(yeild=sum(Yield..Quintal..Hectare..))
+yeild
+barchart(yeild~Crop, data=yeild,xlab = "crop",
+auto.key = list(adj = 1),
+scales=list (x=list(cex=0.8, rot=90)),fill="blue",col="blue")
+```
+  
+What is the cost of Production(Quintal) for crops?  
+```{r echo=FALSE}
+histogram(~Cost.of.Production....Quintal..C2|Crop ,data=crop_cost,col="navyblue")
+```
+  
+What is the cost of Cultivation(Hectare) for crops?  
+```{r echo=FALSE}
+bwplot(Cost.of.Cultivation....Hectare..C2 ~ State |Crop, data = crop_cost,
+varwidth = TRUE,
+ylab = "Cost of Cultivation/Hectare",
+xlab="Crop",
+col="red",cex.label=1,fill="blue",main="Cost of Crop cultivation per Hectare",
+scales=list (x=list(cex=0.8, rot=90)),
+layout=c(2,2))
+```
+  
+Major Crops yeilds - Major Contributors  
+```{r echo=FALSE}
+cc<-crop_cost %>% select(Crop,State,Yield..Quintal..Hectare..)%>% filter(Crop=="SUGARCANE")%>% mutate(Total= sum(Yield..Quintal..Hectare..),percent=(Yield..Quintal..Hectare../Total)*100)
+
+g1<-barchart(percent ~ State,data=cc,fill="grey",col="grey50",main="Statewise Sugarcane Yeild")
+
+cot<-crop_cost %>% select(Crop,State,Yield..Quintal..Hectare..)%>% filter(Crop=="COTTON")%>% mutate(Total= sum(Yield..Quintal..Hectare..),percent=(Yield..Quintal..Hectare../Total)*100)
+g2<-barchart(percent ~ State,data=cot,fill="green4",col="green4",main="Statewise COTTON Yeild")
+
+pad<-crop_cost %>% select(Crop,State,Yield..Quintal..Hectare..)%>% filter(Crop=="PADDY")%>% mutate(Total= sum(Yield..Quintal..Hectare..),percent=(Yield..Quintal..Hectare../Total)*100)
+g3<-barchart(percent ~ State,data=pad,fill="red4",col="red4",main="Statewise PADDY Yeild")
+wh<-crop_cost %>% select(Crop,State,Yield..Quintal..Hectare..)%>% filter(Crop=="WHEAT")%>% mutate(Total= sum(Yield..Quintal..Hectare..),percent=(Yield..Quintal..Hectare../Total)*100)
+g4<-barchart(percent ~ State,data=wh,fill="blue",col="blue",main="Statewise WHEAT Yeild")
+grid.arrange(g1,g2,g3,g4,nrow=2,ncol=2)
+```
+
+3)Crops
+
+```{r}
+str(crop)
+head(crop)
+```
+  
+This dataset has year columns as rows, so lets convert it with tidyr- gather().
+```{r}
+crop1<-gather(crop,"Year","Value",X2004.05:X2011.12)
+head(crop1)
+```
+
+```{r}
+
+colors <- brewer.pal(n = nlevels(crop1$Crop), name = "Set1")
+crop1$Value[is.na(crop1$Value)]<-0
+crop1$Year<-as.factor(crop1$Year)
+
+xyplot(Value ~ Year,group=Crop,
+data = crop1, lty = 1, col = colors,ylab = "Y",
+type = c("l"), distribute.type = TRUE,
+key = list(text = list(levels(crop1$Crop)),
+lines = TRUE, space = "bottom",col=colors))
+```
